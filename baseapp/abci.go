@@ -2,10 +2,13 @@ package baseapp
 
 import (
 	"crypto/sha256"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -30,6 +33,11 @@ const (
 	QueryPathCustom = "custom"
 	QueryPathP2P    = "p2p"
 	QueryPathStore  = "store"
+)
+
+var (
+	startTime time.Time
+	endTime   time.Time
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -152,6 +160,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	startTime = time.Now()
 	if req.Header.ChainID != app.chainID {
 		panic(fmt.Sprintf("invalid chain-id on BeginBlock; expected: %s, got: %s", app.chainID, req.Header.ChainID))
 	}
@@ -489,6 +498,22 @@ func (app *BaseApp) Commit() abci.ResponseCommit {
 	}
 
 	go app.snapshotManager.SnapshotIfApplicable(header.Height)
+
+	endTime = time.Now()
+
+	homeDir, _ := os.UserHomeDir()
+	path := filepath.Join(homeDir, "track.csv")
+	f, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	
+	defer f.Close()
+
+	writer := csv.NewWriter(f)
+	defer writer.Flush()
+
+	extraData := []string{strconv.Itoa(int(header.Height)), strconv.Itoa(int(endTime.Sub(startTime).Milliseconds()))}
+    writer.Write(extraData)
+
+	app.logger.Info("Commit time", "height", header.Height, "commit_time", endTime.Sub(startTime))
 
 	return res
 }
