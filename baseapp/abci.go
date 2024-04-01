@@ -164,7 +164,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	writer := csv.NewWriter(f)
 	defer writer.Flush()
 
-	extraData := []string{"begin", strconv.Itoa(int(app.deliverState.ctx.BlockHeader().Height)), time.Now().UTC().String()}
+	extraData := []string{"begin", strconv.Itoa(int(req.Header.Height)), time.Now().UTC().String()}
     writer.Write(extraData)
 
 	if req.Header.ChainID != app.chainID {
