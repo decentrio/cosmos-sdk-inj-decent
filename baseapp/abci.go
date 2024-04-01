@@ -514,7 +514,7 @@ func (app *BaseApp) Commit() abci.ResponseCommit {
 	writer := csv.NewWriter(f)
 	defer writer.Flush()
 
-	extraData := []string{"commit", strconv.Itoa(int(app.deliverState.ctx.BlockHeader().Height)), time.Now().UTC().String()}
+	extraData := []string{"commit", strconv.Itoa(int(header.Height)), time.Now().UTC().String()}
     writer.Write(extraData)
 
 	return res
